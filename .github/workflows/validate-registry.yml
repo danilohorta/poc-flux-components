@@ -1,0 +1,166 @@
+name: Validate Component Registry
+
+on:
+  pull_request:
+    paths:
+      - 'registry/**'
+      - 'schemas/**'
+      - '.github/workflows/validate-registry.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'registry/**'
+
+jobs:
+  validate-metadata:
+    name: Validate Component Metadata
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install validation tools
+        run: |
+          pip install toml jsonschema
+
+      - name: Validate TOML syntax
+        run: |
+          python -c "
+          import sys
+          import toml
+          from pathlib import Path
+
+          registry_dir = Path('registry')
+          failed = []
+
+          for toml_file in registry_dir.glob('*.toml'):
+              try:
+                  with open(toml_file) as f:
+                      toml.load(f)
+                  print(f'✓ {toml_file.name} - valid TOML')
+              except Exception as e:
+                  print(f'✗ {toml_file.name} - invalid: {e}')
+                  failed.append(toml_file.name)
+
+          if failed:
+              print(f'\n❌ {len(failed)} file(s) failed validation')
+              sys.exit(1)
+          else:
+              print(f'\n✓ All TOML files are valid')
+          "
+
+      - name: Validate required fields
+        run: |
+          python -c "
+          import sys
+          import toml
+          from pathlib import Path
+
+          required_fields = {
+              'component': ['name', 'description', 'repository', 'path'],
+              'owner': ['handle', 'team'],
+              'versions.latest': ['version', 'image']
+          }
+
+          registry_dir = Path('registry')
+          failed = []
+
+          for toml_file in registry_dir.glob('*.toml'):
+              with open(toml_file) as f:
+                  data = toml.load(f)
+
+              print(f'\nValidating {toml_file.name}:')
+
+              # Check component fields
+              if 'component' not in data:
+                  print(f'  ✗ Missing [component] section')
+                  failed.append(toml_file.name)
+                  continue
+
+              for field in required_fields['component']:
+                  if field not in data['component']:
+                      print(f'  ✗ Missing component.{field}')
+                      failed.append(toml_file.name)
+                  else:
+                      print(f'  ✓ component.{field}')
+
+              # Check owner fields
+              if 'owner' not in data:
+                  print(f'  ✗ Missing [owner] section')
+                  failed.append(toml_file.name)
+                  continue
+
+              for field in required_fields['owner']:
+                  if field not in data['owner']:
+                      print(f'  ✗ Missing owner.{field}')
+                      failed.append(toml_file.name)
+                  else:
+                      print(f'  ✓ owner.{field}')
+
+              # Check versions.latest fields
+              if 'versions' not in data or 'latest' not in data.get('versions', {}):
+                  print(f'  ✗ Missing [versions.latest] section')
+                  failed.append(toml_file.name)
+                  continue
+
+              for field in required_fields['versions.latest']:
+                  if field not in data['versions']['latest']:
+                      print(f'  ✗ Missing versions.latest.{field}')
+                      failed.append(toml_file.name)
+                  else:
+                      print(f'  ✓ versions.latest.{field}')
+
+          if failed:
+              print(f'\n❌ {len(set(failed))} file(s) failed validation')
+              sys.exit(1)
+          else:
+              print(f'\n✓ All required fields present')
+          "
+
+      - name: Validate semantic versioning
+        run: |
+          python -c "
+          import sys
+          import re
+          import toml
+          from pathlib import Path
+
+          semver_pattern = re.compile(r'^\d+\.\d+\.\d+$')
+          registry_dir = Path('registry')
+          failed = []
+
+          for toml_file in registry_dir.glob('*.toml'):
+              with open(toml_file) as f:
+                  data = toml.load(f)
+
+              if 'versions' in data and 'latest' in data['versions']:
+                  version = data['versions']['latest'].get('version', '')
+                  if not semver_pattern.match(version):
+                      print(f'✗ {toml_file.name}: Invalid version format \"{version}\" (expected MAJOR.MINOR.PATCH)')
+                      failed.append(toml_file.name)
+                  else:
+                      print(f'✓ {toml_file.name}: Valid version {version}')
+
+          if failed:
+              print(f'\n❌ {len(failed)} file(s) have invalid version format')
+              sys.exit(1)
+          else:
+              print(f'\n✓ All versions follow semantic versioning')
+          "
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ All validation checks passed!"
+          echo ""
+          echo "Validated:"
+          echo "  - TOML syntax"
+          echo "  - Required fields"
+          echo "  - Semantic versioning"

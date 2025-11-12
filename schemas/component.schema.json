@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/danilohorta/poc-flux-components/schemas/component.schema.json",
+  "title": "Component Registry Descriptor",
+  "description": "Schema for flux-pipelines component registry entries",
+  "type": "object",
+  "required": ["component", "versions", "owner"],
+  "properties": {
+    "component": {
+      "type": "object",
+      "required": ["name", "description", "repository", "path"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Component name (lowercase, alphanumeric, underscores)"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 200,
+          "description": "Brief description of the component"
+        },
+        "repository": {
+          "type": "string",
+          "format": "uri",
+          "description": "Git repository URL"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_/.-]+$",
+          "description": "Path to component within repository"
+        }
+      }
+    },
+    "versions": {
+      "type": "object",
+      "required": ["latest"],
+      "properties": {
+        "latest": {
+          "$ref": "#/$defs/version"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/version"
+      }
+    },
+    "owner": {
+      "type": "object",
+      "required": ["handle", "team"],
+      "properties": {
+        "handle": {
+          "type": "string",
+          "description": "GitHub username or internal handle"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Owner email address"
+        },
+        "team": {
+          "type": "string",
+          "description": "Team name"
+        },
+        "team_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Linear team ID (optional)"
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "properties": {
+        "has_tests": {
+          "type": "boolean",
+          "description": "Component has automated tests"
+        },
+        "has_docs": {
+          "type": "boolean",
+          "description": "Component has documentation"
+        },
+        "max_venv_size_mb": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum allowed .venv size in MB"
+        },
+        "max_image_size_mb": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum allowed Docker image size in MB"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags for component discovery"
+        },
+        "requires_gpu": {
+          "type": "boolean",
+          "description": "Component requires GPU"
+        },
+        "experimental": {
+          "type": "boolean",
+          "description": "Component is experimental/unstable"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "version": {
+      "type": "object",
+      "required": ["version", "image"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version (MAJOR.MINOR.PATCH)"
+        },
+        "image": {
+          "type": "string",
+          "description": "Full container image reference"
+        },
+        "min_python": {
+          "type": "string",
+          "pattern": "^3\\.(10|11|12|13)$",
+          "description": "Minimum Python version"
+        },
+        "max_python": {
+          "type": "string",
+          "pattern": "^3\\.(10|11|12|13)$",
+          "description": "Maximum Python version"
+        },
+        "released": {
+          "type": "string",
+          "format": "date",
+          "description": "Release date (YYYY-MM-DD)"
+        },
+        "deprecated": {
+          "type": "boolean",
+          "description": "Version is deprecated"
+        }
+      }
+    }
+  }
+}

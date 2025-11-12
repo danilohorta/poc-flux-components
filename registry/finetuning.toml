@@ -1,0 +1,33 @@
+# Finetuning Component Registry Entry
+# This is the pilot component for the registry system
+
+[component]
+name = "finetuning"
+description = "Fine-tuning component for machine learning models"
+repository = "https://github.com/physicsx/flux-components"
+path = "components/finetuning"
+
+[versions.latest]
+version = "0.1.0"
+image = "registry.io/physicsx/finetuning:0.1.0"
+min_python = "3.10"
+max_python = "3.13"
+released = "2025-11-12"
+
+[owner]
+handle = "kamil"
+email = "kamil@physicsx.ai"
+team = "ml-research"
+team_id = "ee7d5858-1f72-4c1d-8ea4-b3bd18c6212c"
+
+[quality]
+has_tests = false  # Pilot component - tests to be added
+has_docs = true
+max_venv_size_mb = 500
+max_image_size_mb = 2048
+
+[metadata]
+# Additional metadata for component discovery
+tags = ["ml", "training", "finetuning"]
+requires_gpu = true
+experimental = true  # Pilot status
